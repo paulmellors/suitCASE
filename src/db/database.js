@@ -1,4 +1,6 @@
-import initSqlJs from 'sql.js';
+// initSqlJs is loaded as a classic script tag in index.html (public/sql-wasm.js)
+// to bypass Vite's ESM bundling of the CJS sql.js package.
+/* global initSqlJs */
 import {
   INITIAL_TICKETS, INITIAL_ASSETS, INITIAL_KB_ARTICLES,
   CATALOG_ITEMS, AUTOMATION_RULES, INITIAL_NOTIFICATIONS,
@@ -7,6 +9,7 @@ import {
 
 const DB_KEY = 'suitcase-db-v2';
 let db = null;
+let initPromise = null; // singleton — prevents StrictMode double-init
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -205,8 +208,15 @@ function seedDatabase() {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-export async function initDatabase() {
-  const SQL = await initSqlJs({ locateFile: file => `/${file}` });
+export function initDatabase() {
+  if (initPromise) return initPromise;
+  initPromise = _initDatabase();
+  return initPromise;
+}
+
+async function _initDatabase() {
+  const wasmBinary = await fetch('/sql-wasm.wasm').then(r => r.arrayBuffer());
+  const SQL = await window.initSqlJs({ wasmBinary });
 
   const saved = localStorage.getItem(DB_KEY);
   if (saved) {
@@ -318,6 +328,7 @@ export function loadStateFromDatabase() {
 // ── Save state to DB ──────────────────────────────────────────────────────────
 
 export function saveStateToDatabase(state) {
+  if (!db) return;
   db.run('BEGIN TRANSACTION');
 
   db.run('DELETE FROM tickets');
