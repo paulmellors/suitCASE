@@ -2,7 +2,12 @@ import { useState } from 'react';
 import { Briefcase, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
-const ROLE_COLORS = { Admin: 'text-purple-600 bg-purple-50', Manager: 'text-blue-600 bg-blue-50', Agent: 'text-green-600 bg-green-50' };
+const ROLE_COLORS = {
+  Admin:    'text-purple-600 bg-purple-50',
+  Manager:  'text-blue-600 bg-blue-50',
+  Agent:    'text-green-600 bg-green-50',
+  'End User': 'text-orange-600 bg-orange-50',
+};
 
 export function Login() {
   const { state, actions } = useApp();

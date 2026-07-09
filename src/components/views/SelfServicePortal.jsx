@@ -4,8 +4,6 @@ import { useApp } from '../../context/AppContext';
 import { StatusBadge, PriorityBadge } from '../ui/Badge';
 import { formatRelative } from '../../utils/dateUtils';
 
-const MY_REQUESTER = 'John Walsh';
-
 const STEPS = ['Open', 'In Progress', 'Pending', 'Resolved', 'Closed'];
 const STEP_IDX = Object.fromEntries(STEPS.map((s, i) => [s, i]));
 
@@ -14,7 +12,9 @@ export function SelfServicePortal() {
   const [tab, setTab] = useState('submit');
   const [search, setSearch] = useState('');
 
-  const myTickets = state.tickets.filter(t => t.requester === MY_REQUESTER);
+  const currentUser = state.agents.find(a => a.id === state.currentUserId);
+  const myName = currentUser?.name ?? '';
+  const myTickets = state.tickets.filter(t => t.requester === myName);
   const kbResults = search
     ? state.kbArticles.filter(a => a.status === 'Published' && (a.title.toLowerCase().includes(search.toLowerCase()) || a.tags.some(t => t.includes(search.toLowerCase()))))
     : state.kbArticles.filter(a => a.status === 'Published').slice(0, 4);

@@ -32,7 +32,9 @@ function reducer(state, action) {
 
     case 'LOGIN': {
       const perms = getUserPermissions(action.payload, state.groups);
-      const defaultView = perms.dashboard !== false ? 'dashboard' : 'tickets';
+      const defaultView =
+        perms.dashboard !== false ? 'dashboard' :
+        perms.tickets   !== false ? 'tickets'   : 'portal';
       return {
         ...state,
         isAuthenticated: true,

@@ -45,19 +45,22 @@ export const INITIAL_CASE_STATUSES = [
 const ALL_ON  = { dashboard: true,  tickets: true, create: true, catalog: true, changes: true, problems: true, knowledge: true, assets: true, portal: true, automation: true,  reports: true,  agents: true,  settings: true  };
 const MGR_ON  = { dashboard: true,  tickets: true, create: true, catalog: true, changes: true, problems: true, knowledge: true, assets: true, portal: true, automation: true,  reports: true,  agents: true,  settings: false };
 const AGT_ON  = { dashboard: false, tickets: true, create: true, catalog: true, changes: true, problems: true, knowledge: true, assets: true, portal: true, automation: false, reports: false, agents: false, settings: false };
+const USR_ON  = { dashboard: false, tickets: false, create: false, catalog: false, changes: false, problems: false, knowledge: false, assets: false, portal: true, automation: false, reports: false, agents: false, settings: false };
 
 export const INITIAL_GROUPS = [
-  { id: 'g1', name: 'Administrators',  memberIds: ['a1'],           permissions: { ...ALL_ON } },
-  { id: 'g2', name: 'Management',      memberIds: ['a2'],           permissions: { ...MGR_ON } },
-  { id: 'g3', name: 'Support Agents',  memberIds: ['a3', 'a4', 'a5'], permissions: { ...AGT_ON } },
+  { id: 'g1', name: 'Administrators',  memberIds: ['a1'],                permissions: { ...ALL_ON } },
+  { id: 'g2', name: 'Management',      memberIds: ['a2'],                permissions: { ...MGR_ON } },
+  { id: 'g3', name: 'Support Agents',  memberIds: ['a3', 'a4', 'a5'],   permissions: { ...AGT_ON } },
+  { id: 'g4', name: 'End Users',       memberIds: ['a6'],                permissions: { ...USR_ON } },
 ];
 
 export const AGENTS = [
-  { id: 'a1', name: 'Alice Nguyen', role: 'Admin', team: 'Change Advisory Board', email: 'alice@suitcase.io', password: 'alice123', activeTickets: 4 },
-  { id: 'a2', name: 'Bob Patel', role: 'Manager', team: 'Tier 2 Infrastructure', email: 'bob@suitcase.io', password: 'bob123', activeTickets: 6 },
-  { id: 'a3', name: 'Claire Smith', role: 'Agent', team: 'Tier 1 Support', email: 'claire@suitcase.io', password: 'claire123', activeTickets: 8 },
-  { id: 'a4', name: 'David Kim', role: 'Agent', team: 'Tier 1 Support', email: 'david@suitcase.io', password: 'david123', activeTickets: 5 },
-  { id: 'a5', name: 'Emma Brown', role: 'Agent', team: 'Tier 2 Infrastructure', email: 'emma@suitcase.io', password: 'emma123', activeTickets: 3 },
+  { id: 'a1', name: 'Alice Nguyen', role: 'Admin',     team: 'Change Advisory Board',    email: 'alice@suitcase.io', password: 'alice123', activeTickets: 4 },
+  { id: 'a2', name: 'Bob Patel',   role: 'Manager',   team: 'Tier 2 Infrastructure',    email: 'bob@suitcase.io',   password: 'bob123',   activeTickets: 6 },
+  { id: 'a3', name: 'Claire Smith',role: 'Agent',     team: 'Tier 1 Support',           email: 'claire@suitcase.io',password: 'claire123',activeTickets: 8 },
+  { id: 'a4', name: 'David Kim',   role: 'Agent',     team: 'Tier 1 Support',           email: 'david@suitcase.io', password: 'david123', activeTickets: 5 },
+  { id: 'a5', name: 'Emma Brown',  role: 'Agent',     team: 'Tier 2 Infrastructure',    email: 'emma@suitcase.io',  password: 'emma123',  activeTickets: 3 },
+  { id: 'a6', name: 'John Walsh',  role: 'End User',  team: null,                       email: 'john@suitcase.io',  password: 'john123',  activeTickets: 0 },
 ];
 
 export const TEAMS = [

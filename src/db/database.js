@@ -5,7 +5,7 @@ import {
   AGENTS, TEAMS, INITIAL_GROUPS, INITIAL_CASE_STATUSES,
 } from '../data/sampleData';
 
-const DB_KEY = 'suitcase-db-v1';
+const DB_KEY = 'suitcase-db-v2';
 let db = null;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
