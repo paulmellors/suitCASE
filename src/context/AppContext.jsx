@@ -1,16 +1,6 @@
-import { createContext, useContext, useReducer, useCallback } from 'react';
-import {
-  INITIAL_TICKETS, INITIAL_ASSETS, INITIAL_KB_ARTICLES,
-  CATALOG_ITEMS, AUTOMATION_RULES, INITIAL_NOTIFICATIONS, AGENTS, TEAMS,
-  INITIAL_GROUPS, INITIAL_CASE_STATUSES,
-} from '../data/sampleData';
+import { createContext, useContext, useReducer, useCallback, useEffect, useState } from 'react';
+import { initDatabase, loadStateFromDatabase, saveStateToDatabase } from '../db/database';
 import { generateId, addHours } from '../utils/dateUtils';
-
-const SLA_HOURS = { Critical: 1, High: 4, Medium: 8, Low: 24 };
-const TYPE_PREFIX = {
-  'Incident': 'INC', 'Service Request': 'REQ',
-  'Change Request': 'CHG', 'Problem': 'PRB'
-};
 
 // Derive a user's permissions from the groups they belong to
 export function getUserPermissions(userId, groups) {
@@ -18,29 +8,27 @@ export function getUserPermissions(userId, groups) {
   return group ? group.permissions : {};
 }
 
-const initialState = {
-  tickets: INITIAL_TICKETS,
-  assets: INITIAL_ASSETS,
-  kbArticles: INITIAL_KB_ARTICLES,
-  catalogItems: CATALOG_ITEMS,
-  automationRules: AUTOMATION_RULES,
-  notifications: INITIAL_NOTIFICATIONS,
-  agents: AGENTS,
-  teams: TEAMS,
-  groups: INITIAL_GROUPS,
-  caseStatuses: INITIAL_CASE_STATUSES,
-  resolvedRetentionDays: 3,
-  isAuthenticated: false,
-  currentUserId: null,
-  darkMode: false,
-  view: 'dashboard',
-  selectedTicketId: null,
+const SLA_HOURS = { Critical: 1, High: 4, Medium: 8, Low: 24 };
+const TYPE_PREFIX = {
+  'Incident': 'INC', 'Service Request': 'REQ',
+  'Change Request': 'CHG', 'Problem': 'PRB'
+};
+
+const emptyState = {
+  tickets: [], assets: [], kbArticles: [], catalogItems: [],
+  automationRules: [], notifications: [], agents: [], teams: [],
+  groups: [], caseStatuses: [], resolvedRetentionDays: 3,
+  isAuthenticated: false, currentUserId: null, darkMode: false,
+  view: 'dashboard', selectedTicketId: null,
   ticketListFilters: { status: '', priority: '', category: '', assignee: '', search: '' },
   ticketListPage: 1,
 };
 
 function reducer(state, action) {
   switch (action.type) {
+
+    case 'HYDRATE':
+      return { ...state, ...action.payload };
 
     case 'LOGIN': {
       const perms = getUserPermissions(action.payload, state.groups);
@@ -104,10 +92,7 @@ function reducer(state, action) {
     // ── Group management ──────────────────────────────────────────────────────
 
     case 'CREATE_GROUP':
-      return {
-        ...state,
-        groups: [...state.groups, action.payload],
-      };
+      return { ...state, groups: [...state.groups, action.payload] };
 
     case 'UPDATE_GROUP': {
       const { id, updates } = action.payload;
@@ -118,10 +103,7 @@ function reducer(state, action) {
     }
 
     case 'DELETE_GROUP':
-      return {
-        ...state,
-        groups: state.groups.filter(g => g.id !== action.payload),
-      };
+      return { ...state, groups: state.groups.filter(g => g.id !== action.payload) };
 
     case 'SET_GROUP_PERMISSION': {
       const { groupId, section, value } = action.payload;
@@ -137,7 +119,6 @@ function reducer(state, action) {
 
     case 'ADD_MEMBER_TO_GROUP': {
       const { groupId, userId } = action.payload;
-      // Remove from any existing group first (one group per user)
       const groupsWithoutUser = state.groups.map(g => ({
         ...g,
         memberIds: g.memberIds.filter(id => id !== userId),
@@ -145,9 +126,7 @@ function reducer(state, action) {
       return {
         ...state,
         groups: groupsWithoutUser.map(g =>
-          g.id === groupId
-            ? { ...g, memberIds: [...g.memberIds, userId] }
-            : g
+          g.id === groupId ? { ...g, memberIds: [...g.memberIds, userId] } : g
         ),
       };
     }
@@ -211,7 +190,7 @@ function reducer(state, action) {
             updates.status === 'Resolved' && t.status !== 'Resolved'
               ? new Date()
               : updates.status && updates.status !== 'Resolved'
-                ? null          // cleared when reopened
+                ? null
                 : t.resolvedAt;
           return { ...t, ...updates, resolvedAt };
         }),
@@ -248,10 +227,7 @@ function reducer(state, action) {
       };
 
     case 'MARK_ALL_NOTIFICATIONS_READ':
-      return {
-        ...state,
-        notifications: state.notifications.map(n => ({ ...n, read: true })),
-      };
+      return { ...state, notifications: state.notifications.map(n => ({ ...n, read: true })) };
 
     case 'CLEAR_NOTIFICATIONS':
       return { ...state, notifications: [] };
@@ -337,8 +313,44 @@ function reducer(state, action) {
 
 const AppContext = createContext(null);
 
+// Tracks which state slices need DB persistence (excludes pure UI state)
+const DB_DEPS = s => [
+  s.tickets, s.assets, s.kbArticles, s.notifications,
+  s.agents, s.teams, s.groups, s.catalogItems,
+  s.automationRules, s.caseStatuses, s.resolvedRetentionDays,
+];
+
 export function AppProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, dispatch] = useReducer(reducer, emptyState);
+  const [dbReady, setDbReady] = useState(false);
+
+  useEffect(() => {
+    initDatabase()
+      .then(() => {
+        dispatch({ type: 'HYDRATE', payload: loadStateFromDatabase() });
+        setDbReady(true);
+      })
+      .catch(err => {
+        console.error('Database init failed:', err);
+        setDbReady(true);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!dbReady) return;
+    saveStateToDatabase(state);
+  }, [dbReady, ...DB_DEPS(state)]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!dbReady) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-gray-500">Initializing database…</p>
+        </div>
+      </div>
+    );
+  }
 
   const actions = {
     login:  useCallback((id) => dispatch({ type: 'LOGIN',  payload: id }), []),

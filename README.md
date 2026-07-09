@@ -18,7 +18,7 @@ A fully-featured IT Service Management (ITSM) helpdesk single-page application c
 - **Agents & Teams** — manage support agents, teams, and on-call schedules
 - **Settings** — branding, SLA policies, categories, and notification preferences
 
-All state is held in-memory — no backend or database required.
+All application data is stored in a SQLite database running in the browser via WebAssembly (sql.js). Data persists across page refreshes in `localStorage` and is automatically seeded with demo data on first load.
 
 ## Prerequisites
 
@@ -70,6 +70,8 @@ npm run lint
 
 ```
 suitCASE/
+├── public/
+│   └── sql-wasm.wasm       # SQLite WebAssembly binary
 ├── src/
 │   ├── components/
 │   │   └── views/          # One file per top-level view
@@ -88,9 +90,11 @@ suitCASE/
 │   │       ├── AgentsTeams.jsx
 │   │       └── Settings.jsx
 │   ├── context/
-│   │   └── AppContext.jsx   # Global state via useReducer
+│   │   └── AppContext.jsx   # Global state via useReducer + SQLite persistence
 │   ├── data/
-│   │   └── sampleData.js    # Pre-seeded demo data
+│   │   └── sampleData.js    # Pre-seeded demo data (used for initial DB seed only)
+│   ├── db/
+│   │   └── database.js      # SQLite schema, seed, load, and save logic
 │   └── utils/
 │       └── dateUtils.js     # SLA helpers, ID generation, date formatting
 ├── index.html
@@ -107,7 +111,45 @@ suitCASE/
 | Tailwind CSS v4 | 4 | Utility-first styling |
 | Recharts | 3 | Charts and data visualisation |
 | lucide-react | 1 | Icon library |
+| sql.js | 1 | SQLite compiled to WebAssembly |
 | oxlint | 1 | Fast linter |
+
+## Database
+
+The app uses **SQLite via sql.js** — a WebAssembly build of SQLite that runs entirely in the browser. No backend server is required.
+
+### How it works
+
+1. On first load, a SQLite database is created in memory, the schema is applied, and demo data is seeded.
+2. The database is serialized and stored in `localStorage` under the key `suitcase-db-v1`.
+3. On subsequent loads, the database is restored from `localStorage`.
+4. After every data-changing action, the updated state is written back to the SQLite database and re-serialized to `localStorage`.
+
+### Schema
+
+| Table | Description |
+|---|---|
+| `tickets` | Incidents, service requests, change requests, and problems |
+| `assets` | CMDB configuration items |
+| `kb_articles` | Knowledge base articles |
+| `notifications` | In-app notifications |
+| `agents` | Support agent accounts |
+| `teams` | Agent team groupings |
+| `user_groups` | Permission groups with member lists |
+| `catalog_items` | Service catalog entries |
+| `automation_rules` | Trigger-action automation definitions |
+| `case_statuses` | Configurable ticket status labels |
+| `settings` | Key-value application settings |
+
+### Reset the database
+
+To reset all data back to the demo seed, clear the entry in your browser's localStorage:
+
+```js
+// In the browser console:
+localStorage.removeItem('suitcase-db-v1');
+location.reload();
+```
 
 ## Sample data
 
@@ -121,7 +163,7 @@ The app ships with pre-seeded demo data so you can explore all features immediat
 - 5 automation rules
 - 10 notifications
 
-Data resets to this baseline on every page refresh (no persistence layer).
+Data is seeded into SQLite on first load. All changes made in the app persist across page refreshes.
 
 ## License
 
