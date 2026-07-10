@@ -148,7 +148,7 @@ function reducer(state, action) {
     // ── Tickets ───────────────────────────────────────────────────────────────
 
     case 'CREATE_TICKET': {
-      const { ticket } = action.payload;
+      const { ticket, stayOnPortal } = action.payload;
       const prefix = TYPE_PREFIX[ticket.type] || 'INC';
       const existingIds = state.tickets.map(t => t.id);
       const id = generateId(prefix, existingIds);
@@ -177,8 +177,8 @@ function reducer(state, action) {
         ...state,
         tickets: [newTicket, ...state.tickets],
         notifications: [notification, ...state.notifications],
-        selectedTicketId: id,
-        view: 'tickets',
+        selectedTicketId: stayOnPortal ? null : id,
+        view: stayOnPortal ? 'portal' : 'tickets',
       };
     }
 
@@ -371,7 +371,7 @@ export function AppProvider({ children }) {
     removeMemberFromGroup: useCallback((groupId, userId)    => dispatch({ type: 'REMOVE_MEMBER_FROM_GROUP', payload: { groupId, userId } }),            []),
 
     // Tickets
-    createTicket:  useCallback((ticket)          => dispatch({ type: 'CREATE_TICKET',  payload: { ticket } }),          []),
+    createTicket:  useCallback((ticket, opts = {}) => dispatch({ type: 'CREATE_TICKET',  payload: { ticket, ...opts } }), []),
     updateTicket:  useCallback((id, updates)     => dispatch({ type: 'UPDATE_TICKET',  payload: { id, updates } }),     []),
     addComment:    useCallback((ticketId, comment) => dispatch({ type: 'ADD_COMMENT',  payload: { ticketId, comment } }), []),
     approveTicket: useCallback((id)              => dispatch({ type: 'APPROVE_TICKET', payload: id }),                  []),
