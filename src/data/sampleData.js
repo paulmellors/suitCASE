@@ -1,4 +1,4 @@
-import { addHours, subHours, subDays, subMinutes } from '../utils/dateUtils';
+import { addHours, subHours, subDays, subMinutes } from '../utils/dateUtils.js';
 
 const NOW = new Date();
 

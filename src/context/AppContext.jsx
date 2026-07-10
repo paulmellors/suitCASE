@@ -1,5 +1,5 @@
-import { createContext, useContext, useReducer, useCallback, useEffect, useState } from 'react';
-import { initDatabase, loadStateFromDatabase, saveStateToDatabase } from '../db/database';
+import { createContext, useContext, useReducer, useCallback, useEffect, useState, useRef } from 'react';
+import { initDatabase, saveStateToDatabase } from '../db/database';
 import { generateId, addHours } from '../utils/dateUtils';
 
 // Derive a user's permissions from the groups they belong to
@@ -325,23 +325,27 @@ const DB_DEPS = s => [
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, emptyState);
   const [dbReady, setDbReady] = useState(false);
+  const [serverError, setServerError] = useState(null);
+  const saveTimer = useRef(null);
 
   useEffect(() => {
     initDatabase()
-      .then(() => {
-        dispatch({ type: 'HYDRATE', payload: loadStateFromDatabase() });
+      .then(initialState => {
+        dispatch({ type: 'HYDRATE', payload: initialState });
         setDbReady(true);
       })
       .catch(err => {
-        console.error('Database init failed:', err);
+        console.error('Server connection failed:', err);
+        setServerError('Cannot reach the suitCASE API. Is the server running?');
         setDbReady(true);
       });
   }, []);
 
   useEffect(() => {
-    if (!dbReady) return;
-    saveStateToDatabase(state);
-  }, [dbReady, ...DB_DEPS(state)]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!dbReady || serverError) return;
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => saveStateToDatabase(state), 500);
+  }, [dbReady, serverError, ...DB_DEPS(state)]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // All hooks must be declared before any conditional return
   const actions = {
@@ -399,7 +403,20 @@ export function AppProvider({ children }) {
       <div className="h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-gray-500">Initializing database…</p>
+          <p className="text-sm text-gray-500">Connecting to server…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (serverError) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-sm">
+          <div className="text-4xl mb-4">⚠️</div>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">Server unavailable</h2>
+          <p className="text-sm text-gray-500 mb-4">{serverError}</p>
+          <p className="text-xs text-gray-400 font-mono">npm run dev</p>
         </div>
       </div>
     );
